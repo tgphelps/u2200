@@ -100,12 +100,30 @@ fdads     $equf     4,,h2
 $(2)
 dofilepkt $res      5
 
+. Read current record. It must be a file record.
+. Read next record until you find another file record.
 
 dofile
           beginsub
           aprint    'doing file...'
-          . temp code. Test readcur
-          call      readcur
+          call      readcur           . a0 -> record
+          tnz,h1    fqual,a0          . better not be zero
+          er        err$
+          la,u      a1,dofilepkt
+          dl        a2,fqual,a0
+          ds        a2,fqual,a1
+          dl        a2,fname,a0
+          ds        a2,fname,a1
+          aprint    'got file record'
+          . print dofilepkt
+
+dofile01  . loop over DAD tables
+          call      readnext
+          tz,h1     fqual,a0          . if zero, it's a DAD table
+          j         dofile10
+          aprint    'got DAD table'
+          j         dofile01
+dofile10
           endsub
 
 summary
@@ -143,8 +161,10 @@ openerr1
 
 readnext
           beginsub
+          . aprint    'readnext'
           inc       cursect
-          call      readcur
+          nop
+          call      readcur           . a0 -> record
           endsub
 
 
@@ -154,6 +174,7 @@ readnext
 
 readcur
           beginsub
+          . aprint    'readcur'
           top       a15,(option('D'))
           j         readc01
           a$edit    edpkt
@@ -184,9 +205,11 @@ readc03
           er        iow$
           tz,s1     iopkt+5
           er        err$
-readgotit
-          . TEMP
-          la,u      a0,iobuff
+readgotit . return a0 -> current sector
+          la        a0,cursect
+          ana       a0,curbuff        . a0 = sector offset into buffer
+          msi,u     a0,28
+          aa,u      a0,iobuff         . a0 -> current sector
           endsub
 
 
