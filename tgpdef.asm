@@ -10,6 +10,9 @@
 .
 .         $include  'tgpdef'
 .
+. NOTE: Any literals generated will go under $(3), so they
+. can live in a write-protected ibank.
+
 . General rules that all code will follow are:
 .
 . 1. Register X4 is the stack pointer, and no code should directly
@@ -106,5 +109,62 @@ i         $repeat   stacked(0),1,-1
           pop       stacked(i)
           $endr
           $end
+
+. Function to generate those bit settings that correspond
+. to option letters on processor calls. It's the callers job to know
+. that options 'A' to 'H' must be in a literal, and the others can
+. be immediate values.
+. Examples:
+.        top,u      a15,option('M')
+.        tep        a15,(option('G'))
+
+f         $func
+option*   $name
+          $end      1*/($cfs('Z')-$cfs(f(1)))
+
+. Proc to print an ASCII string:
+.         aprint    'any string'
+
+p         $proc     1
+aprint*   $name
+$(3)
+str       $gen      p(1,1)L
+len       $equ      $sl(p(1,1))//4
+pcw       +         (0100+len, str)
+$($ilcn)
+          la        a0,pcw
+          er        aprint$
+          $end
+
+. Procs to call and return from subroutines
+
+p         $proc     1,1
+call*     $name
+          lmj       x11,p(1,1)
+          $end
+
+p         $proc     0,1
+ret*      $name
+          j         0,x11
+          $end
+
+. I can't consistently remember to save X11 in a subroutine, when
+. it is calling another one via X11. Let's automate that.
+
+
+p         $proc     0,1
+beginsub* $name
+          push      x11
+          $end
+
+p         $proc     0,3
+endsub*   $name
+          pop       x11
+          j         0,x11
+          $end
+
+
+
+
 
           $end
