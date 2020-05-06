@@ -29,14 +29,13 @@ start
           lr        r4,a0             . r4 = file count
           jgd       r4,$+1
 loop1
-          call      dofile
+          call      dofile            . process next file
           jgd       r4,loop1
 
-          call      summary
+          call      summary           . do the real processing here
           er        exit$
 
-err1
-.         a$print   (0103,('open failed'l))
+err1      . Failed to file a good, readable MFD extract.
           aprint    'open failed'
           er        err$
 
@@ -55,6 +54,10 @@ mflabl    $equf     0
 mfflct    $equf     1
 mfflad    $equf     4
 
+mfqual    $equf     0
+mffile    $equf     2
+mfcycl    $equf     19,,h2
+
 . Read the file header, verify that the label is good.
 . Save the sector address of the first file record.
 . Return the file count.
@@ -62,27 +65,27 @@ mfflad    $equf     4
 openextract
           beginsub
           pushregs  x5
-          call      openmfd
+          call      openmfd           . open and read first track
           lx        x5,a0             . x5 -> sector 0
           la        a0,mflabl,x5
           te        a0,($cfs('*MFDB*')) . look like an MFD extract?
           j         openerr2
-          top       a15,(option('D'))  . if debug on
-          j         open01
           la        a0,mfflad,x5
           sa        a0,cursect         . remember where to start files
-          a$edit    edpkt
+          top       a15,(option('D'))  . if debug on
+          j         open01
+          a$edit    aedpkt
           a$emsg    msgfilect
           a$edecv   mfflct,x5
           a$eprint
 open01
-          la        a0,iobuff+1
+          la        a0,iobuff+1        . return file count
           popregs
           endsub
 
 openerr2
-          l$snap    'a0',2
           aprint    'ERROR: Invalid MFD extract header'
+          l$snap    'a0',2
           er        err$
 /
 $(1)
@@ -98,34 +101,53 @@ fname     $equf     2
 fcyc      $equf     4,,h1
 fdads     $equf     4,,h2
 $(2)
+filenum   +         0
 dofilepkt $res      5
+domsg     $cfs('DOING FILE &: &')
 
 . Read current record. It must be a file record.
 . Read next record until you find another file record.
 
 dofile
           beginsub
-          aprint    'doing file...'
+          inc       filenum           . bump file number for msg
+          nop
+
           call      readcur           . a0 -> record
-          tnz,h1    fqual,a0          . better not be zero
+          tnz,h1    fqual,a0          . error if not a file record
           er        err$
-          la,u      a1,dofilepkt
-          dl        a2,fqual,a0
+
+          la,u      a1,dofilepkt      . save file info for processing
+          dl        a2,mfqual,a0
           ds        a2,fqual,a1
-          dl        a2,fname,a0
+          dl        a2,mffile,a0
           ds        a2,fname,a1
-          aprint    'got file record'
-          . print dofilepkt
+          la        a2,mfcycl,a0
+          sa        a2,fcyc,a1
+
+          e$dit     edpkt             . msg, mostly for debugging
+          e$msg     domsg
+          e$decv    filenum
+          e$msgr
+          e$fd2     dofilepkt+fqual
+          e$char    $cfs('*')
+          e$fd2     dofilepkt+fname
+          e$char    $cfs('(')
+          e$decv    dofilepkt+4,,h1  . shitty
+          e$char    $cfs(')')
+          e$print
 
 dofile01  . loop over DAD tables
-          call      readnext
+          call      readnext          . a0 -> following record
           tz,h1     fqual,a0          . if zero, it's a DAD table
-          j         dofile10
-          aprint    'got DAD table'
+          j         dofile10          . it's another file record. Stop
+          aprint    'got DAD table'   . debug
           j         dofile01
 dofile10
+. XXX somewhere, we need to select only disk files
           endsub
-
+/
+$(1)
 summary
           beginsub
           aprint    'summary goes right here...'
@@ -144,7 +166,7 @@ openmfd
           beginsub
           la,u      a0,iopkt
           er        iow$              . read track 0
-          tz,s1     iopkt+3
+          tz,s1     iopkt+3           . good I/O?
           j         openerr1
           sz        cursect           . sector 0 is current
           sz        curbuff           . track 0 is loaded
@@ -161,8 +183,7 @@ openerr1
 
 readnext
           beginsub
-          . aprint    'readnext'
-          inc       cursect
+          inc       cursect           . Make cursect get the next one
           nop
           call      readcur           . a0 -> record
           endsub
@@ -174,48 +195,47 @@ readnext
 
 readcur
           beginsub
-          . aprint    'readcur'
           top       a15,(option('D'))
           j         readc01
-          a$edit    edpkt
+          a$edit    aedpkt
           a$emsg    ('read &/&'ld)
           a$edecv   cursect
           a$emsgr
           a$edecv   curbuff
           a$eprint
 readc01
-          la        a0,cursect
+          la        a0,cursect        . needed track = (cursect//64)*64
           ssl       a0,6
           lssl      a0,6
-          tne       a0,curbuff
-          j         readgotit
+          tne       a0,curbuff        . do we have that one?
+          j         readgotit         . yes, no I/O necessary
+
           . a0 = sector address we want to read
-          sa        a0,iopkt+5
-          push      a0
+          sa        a0,iopkt+5        . set I/O address
+          sa        a0,curbuff        . remember what track we loaded
           top       a15,(option('D'))
           j         readc03
-          pop       a0
-          sa        a0,curbuff        . remember what track we loaded
-          a$edit    edpkt
+          a$edit    aedpkt            . debug msg
           a$emsg    ('I/O :&'ld)
           a$edecv   iopkt+5
           a$eprint
 readc03
           la,u      a0,iopkt
-          er        iow$
-          tz,s1     iopkt+5
+          er        iow$              . read the track
+          tz,s1     iopkt+5           . check I/O status
           er        err$
 readgotit . return a0 -> current sector
           la        a0,cursect
           ana       a0,curbuff        . a0 = sector offset into buffer
-          msi,u     a0,28
+          msi,u     a0,28             . times words/sector
           aa,u      a0,iobuff         . a0 -> current sector
           endsub
 
 
 /
 $(2)      . Global data
-edpkt     a$editpkt 33,edline
+aedpkt     a$editpkt 33,edline
+edpkt      e$ditpkt 22,edline
 edline    $res      33
 msgfilect 'File count = &'
 
