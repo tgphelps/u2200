@@ -102,7 +102,8 @@ fqual     $equf     0
 fname     $equf     2
 fcyc      $equf     4,,h1
 fdads     $equf     4,,h2
-ftape     $equf     5
+fholes    $equf     5,,h1             . we don't count holes yet
+ftape     $equf     5,,h2
 $(2)
 filenum   +         0
 dofilepkt $res      6
@@ -113,6 +114,7 @@ domsg     $cfs('DOING FILE &: &')
 
 dofile
           beginsub
+          pushregs  x5,x6
           inc       filenum           . bump file number for msg
           nop
 
@@ -120,48 +122,79 @@ dofile
           tnz,h1    fqual,a0          . error if not a file record
           er        err$
 
-          la,u      a1,dofilepkt      . save file info for processing
-          sz        ftape,a1
+          lx,u      x5,dofilepkt      . save file info for processing
+          sz        ftape,x5          . assume not a tape
+          sz        fdads,x5          . dads = 0
+          sz        fholes,x5         . holes = 0
           la        a2,mftype,a0
           tep,u     a2,mmtape         . is this a tape file?
-          sp1         ftape,a1          . yes, remember that
+          sp1       ftape,x5          . yes, remember that
           dl        a2,mfqual,a0
-          ds        a2,fqual,a1
+          ds        a2,fqual,x5       . save qual
           dl        a2,mffile,a0
-          ds        a2,fname,a1
+          ds        a2,fname,x5       . save filename
           la        a2,mfcycl,a0
-          sa        a2,fcyc,a1
+          sa        a2,fcyc,x5        . save f-cycle
 
-          e$dit     edpkt             . msg, mostly for debugging
-          e$msg     domsg
-          e$decv    filenum
-          e$msgr
-          e$fd2     dofilepkt+fqual
-          e$char    $cfs('*')
-          e$fd2     dofilepkt+fname
-          e$char    $cfs('(')
-          e$decv    dofilepkt+4,,h1  . shitty
-          e$char    $cfs(')')
-          e$print
 
 dofile01  . loop over DAD tables
 
           call      readnext          . a0 -> following record
           tz,h1     fqual,a0          . if zero, it's a DAD table
           j         dofile10          . it's another file record. Stop
-          tz        dofilepkt+5       . XXX was this a tape file?
+          tz        ftape,x5          . was this a tape file?
           j         dofilerr          . that's not good
                                       . a0 -> DAD table
-          halt
+          call      countdads         . returns dad count in this table
+          aa        a0,fdads,x5
+          sa        a0,fdads,x5       . update total dad count
           aprint    'got DAD table'   . debug
           j         dofile01
-dofile10
+dofile10  . finished reading DAD tables
 . XXX somewhere, we need to select only disk files
+          e$dit     edpkt             . print file, cycle, dad count
+          e$msg     domsg
+          e$decv    filenum
+          e$msgr
+          e$fd2     fqual,x5
+          e$char    $cfs('*')
+          e$fd2     fname,x5
+          e$char    $cfs('(')
+          e$decv    fcyc,x5
+          e$char    $cfs(')')
+          e$char    $cfs(' ')
+          e$decv    fdads,x5
+          e$print
+          popregs
           endsub
 
 dofilerr
           aprint    'ERROR: Tape file has DAD tables.'
           er        err$
+
+. countdads: return a0 = count of DADs in the DAD table a0 points to
+. We don't count holes as DADs.
+
+countdads
+          beginsub
+          pushregs  x5
+          lx        x5,a0             . x5 -> DAD table
+          aa,u      a0,4              . point to first DAD
+          lr,u      r1,8-1            . max 8 DADs per table
+          la,u      a2,0              . DADs so far
+dadloop
+          la,h2     a1,2,a0           . get LDAT
+          top,u     a1,0400000        . is this a hole?
+          aa,u      a2,1              . no, bump DAD count
+          la,h1     a1,2,a0           . DAD flags
+          tep,u     a1,4              . last DAD in this table?
+          j         daddone           . yes -> daddone
+          aa,u      a0,3              . a0 -> next DAD
+          jgd       r1,dadloop
+daddone
+          la        a0,a2             . return DAD count
+          popregs
+          endsub
 /
 $(1)
 summary
