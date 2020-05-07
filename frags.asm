@@ -13,15 +13,19 @@
 
 
 
-
 $(2)      $lit
 thestack  stackgen  50
 
+idpkt     i$dpkt    'IDBUFF' 'FRAGS 1R1'
 
 $(1)
 start
           lx        x4,(1,thestack)   . load stack pointer
           la        a15,a5            . save program options
+
+          i$d       idpkt
+          er        err$
+          er        aprint$
 
           call      openextract       . return file count, or 0 on error
           jz        a0,err1
@@ -32,7 +36,7 @@ loop1
           call      dofile            . process next file
           jgd       r4,loop1
 
-          call      summary           . do the real processing here
+          . call      summary
           er        exit$
 
 err1      . Failed to file a good, readable MFD extract.
@@ -112,6 +116,7 @@ domsg     $cfs('DOING FILE &: &')
 . Read current record. It must be a file record.
 . Read next record until you find another file record.
 
+$(1)
 dofile
           beginsub
           pushregs  x5,x6
@@ -151,7 +156,8 @@ dofile01  . loop over DAD tables
           . aprint    'got DAD table'   . debug
           j         dofile01
 dofile10  . finished reading DAD tables
-. XXX somewhere, we need to select only disk files
+          tz        ftape,x5          . is this a tape file?
+          j         dofile20          . yes, don't print anything
           e$dit     edpkt             . print file, cycle, dad count
           e$msg     domsg
           e$decv    filenum
@@ -165,6 +171,7 @@ dofile10  . finished reading DAD tables
           e$char    $cfs(' ')
           e$decv    fdads,x5
           e$print
+dofile20
           popregs
           endsub
 
@@ -233,7 +240,7 @@ printd02
 $(1)
 summary
           beginsub
-          aprint    'summary goes right here...'
+          aprint    'do we have any'
           endsub
 /
 . I/O functions to read the MFD extract file.
