@@ -148,7 +148,7 @@ dofile01  . loop over DAD tables
           call      countdads         . returns dad count in this table
           aa        a0,fdads,x5
           sa        a0,fdads,x5       . update total dad count
-          aprint    'got DAD table'   . debug
+          . aprint    'got DAD table'   . debug
           j         dofile01
 dofile10  . finished reading DAD tables
 . XXX somewhere, we need to select only disk files
@@ -179,6 +179,9 @@ countdads
           beginsub
           pushregs  x5
           lx        x5,a0             . x5 -> DAD table
+          tep       a15,(option('D'))
+          call      printdadt
+          la        a0,x5
           aa,u      a0,4              . point to first DAD
           lr,u      r1,8-1            . max 8 DADs per table
           la,u      a2,0              . DADs so far
@@ -193,6 +196,37 @@ dadloop
           jgd       r1,dadloop
 daddone
           la        a0,a2             . return DAD count
+          popregs
+          endsub
+
+. printdadt: print contents of DAD table
+. a0 -> DAD table
+
+printdadt
+          beginsub
+          pushregs  x5,r5
+          lx        x5,a0
+          ax,u      x5,4              . x5 -> first DAD
+          lr,u      r5,8-1
+printd01
+          a$edit    aedpkt
+          la,h2     a0,2,x5
+          tep,u     a0,0400000
+          j         printd03
+          a$efd1    ('FRAG')
+          j         printd04
+printd03
+          a$efd1    ('HOLE')
+printd04
+          a$echar   ' '
+          a$edecv   1,x5
+          a$eprint
+          la,h1     a0,2,x5
+          tep,u     a0,4              . last DAD?
+          j         printd02          . yes
+          ax,u      x5,3
+          jgd       r5,printd01
+printd02
           popregs
           endsub
 /
@@ -244,7 +278,7 @@ readnext
 
 readcur
           beginsub
-          top       a15,(option('D'))
+          . top       a15,(option('D'))
           j         readc01
           a$edit    aedpkt
           a$emsg    ('read &/&'ld)
@@ -262,7 +296,7 @@ readc01
           . a0 = sector address we want to read
           sa        a0,iopkt+5        . set I/O address
           sa        a0,curbuff        . remember what track we loaded
-          top       a15,(option('D'))
+          . top       a15,(option('D'))
           j         readc03
           a$edit    aedpkt            . debug msg
           a$emsg    ('I/O :&'ld)
