@@ -56,6 +56,8 @@ mfflad    $equf     4
 
 mfqual    $equf     0
 mffile    $equf     2
+mftype    $equf     12,,s6
+mmtape    $equ      1
 mfcycl    $equf     19,,h2
 
 . Read the file header, verify that the label is good.
@@ -100,9 +102,10 @@ fqual     $equf     0
 fname     $equf     2
 fcyc      $equf     4,,h1
 fdads     $equf     4,,h2
+ftape     $equf     5
 $(2)
 filenum   +         0
-dofilepkt $res      5
+dofilepkt $res      6
 domsg     $cfs('DOING FILE &: &')
 
 . Read current record. It must be a file record.
@@ -118,6 +121,10 @@ dofile
           er        err$
 
           la,u      a1,dofilepkt      . save file info for processing
+          sz        ftape,a1
+          la        a2,mftype,a0
+          tep,u     a2,mmtape         . is this a tape file?
+          sp1         ftape,a1          . yes, remember that
           dl        a2,mfqual,a0
           ds        a2,fqual,a1
           dl        a2,mffile,a0
@@ -138,14 +145,23 @@ dofile
           e$print
 
 dofile01  . loop over DAD tables
+
           call      readnext          . a0 -> following record
           tz,h1     fqual,a0          . if zero, it's a DAD table
           j         dofile10          . it's another file record. Stop
+          tz        dofilepkt+5       . XXX was this a tape file?
+          j         dofilerr          . that's not good
+                                      . a0 -> DAD table
+          halt
           aprint    'got DAD table'   . debug
           j         dofile01
 dofile10
 . XXX somewhere, we need to select only disk files
           endsub
+
+dofilerr
+          aprint    'ERROR: Tape file has DAD tables.'
+          er        err$
 /
 $(1)
 summary

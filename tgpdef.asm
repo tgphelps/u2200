@@ -163,6 +163,12 @@ endsub*   $name
           j         0,x11
           $end
 
+. Proc to generate a debug halt instruction for the PS/2200 debugger
+
+p         $proc     0,1
+halt*     $name
+          +         001111,0111111
+          $end
 
 
 
