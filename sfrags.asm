@@ -1,5 +1,9 @@
           $include  'maxr$'
           $include  'tgpdef'
+
+          $include  'struc$'
+          struc$,'OLD PROGRAM'
+
           $ascii
           $info     1 3               . quarter-word sensitive
 
