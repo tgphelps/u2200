@@ -17,6 +17,7 @@ $(2)      $lit
 thestack  stackgen  50
 
 idpkt     i$dpkt    'IDBUFF' 'FRAGS 1R1'
+mindads    $res      1
 
 $(1)
 start
@@ -27,6 +28,8 @@ start
           er        err$
           er        aprint$
 
+          call      getparam          . Get parameter from call line
+          sa        a0,mindads        . minimum DADs we care about
           call      openextract       . return file count, or 0 on error
           jz        a0,err1
 
@@ -43,22 +46,50 @@ err1      . Failed to file a good, readable MFD extract.
           aprint    'open failed'
           er        err$
 
+/
+$(2)
+inforbuf  res       50
+param     res       2
+$(1)
 
+. getparam: Read INFOR table and return the binary value of field 010106
+
+getparam
+          beginsub
+          i$nfor    'RINF$',50,inforbuf
+          j         badinfor
+          i$nfor    'SINF$',010106
+          j         usage
+.         ds        a0,param
+.         e$dit     edpkt
+.         e$msg     ($cfs('PARAM: &'ld))
+.         e$fd2     param
+.         e$print
+. a0,a1 = field 010106
+. a3 = char count
+          call      fdbin             . a0 = parameter
+          endsub
+badinfor
+          aprint    'FRAGS must be called as a processor.'
+          er        exit$
+usage
+          aprint    'usage: @FRAGS <mindads>'
+          er         exit$
 /
 $(2)
 iopkt     i$od      '$MFDB$',r$ 1792,iobuff 0
 iobuff    $res      1792
-cursect   $res      1       . next mfd sector we need to look at
-curbuff   $res      1       . sector addr of loaded track
+cursect   $res      1                 . next mfd sector we need to look at
+curbuff   $res      1                 . sector addr of loaded track
 
 
 $(1)
 
-mflabl    $equf     0
+mflabl    $equf     0                 . fields in MFD extract header
 mfflct    $equf     1
 mfflad    $equf     4
 
-mfqual    $equf     0
+mfqual    $equf     0                 . fields in MFD file record
 mffile    $equf     2
 mftype    $equf     12,,s6
 mmtape    $equ      1
@@ -158,6 +189,9 @@ dofile01  . loop over DAD tables
 dofile10  . finished reading DAD tables
           tz        ftape,x5          . is this a tape file?
           j         dofile20          . yes, don't print anything
+          la        a0,fdads,x5
+          tle       a0,mindads        . enough DADs to show?
+          j         dofile20          . no -> dofile20
           e$dit     edpkt             . print file, cycle, dad count
           e$msg     domsg
           e$decv    filenum
@@ -321,7 +355,28 @@ readgotit . return a0 -> current sector
           aa,u      a0,iobuff         . a0 -> current sector
           endsub
 
+/
+$(1)
+. I stole this code from MFDEDT. I couldn't bear doing it from scratch.
+. a0,a1 = Fieldata representation of a number, LJSF
+. a3 = character count
 
+fdbin
+          beginsub
+          ANA,U     A3,1              . FIND - DECR CHAR COUNT FOR LOOP
+          LA,U      A5,0              . INIT ACCUMULATOR = 0
+DE052
+          LDSC      A0,6              . NEXT CHAR TO A1 LOWER
+          AND,U     A1,077            . ISOLATE CHAR IN A2
+          ANA,U     A2,$cfs('0')      . CONVERT TO BINARY
+          TG,U      A2,0              . CHECK FOR LEGAL RANGE, 0-9
+          TG,U      A2,9+1            .
+          J         usage
+          MSI,U     A5,10             . MULT ACCUMULATOR BY TEN
+          AA,U      A5,,A2            .  AND ADD IN NEXT DIGIT
+          JGD       A3,DE052          . BACK FOR NEXT DIGIT
+          la        a0,a5
+          endsub
 /
 $(2)      . Global data
 aedpkt     a$editpkt 33,edline

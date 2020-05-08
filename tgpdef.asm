@@ -88,10 +88,14 @@ pop*      $name
 . it will pop them in the reverse order so everything comes out okay.
 . (I can never manually keep my pushes and pops in sync, and in the
 . right order, so I'm having the procs do it for me.)
+.
 . WARNING: These procs assume that 'popregs' call follows the 'pushregs'
 . call in the source code. If you jump around in your code so that
 . pushregs executes first, but follows popregs in the source code,
 . Bad Things Will Happen. So don't get cute.
+.
+. Also: You may NOT next pushregs/popregs calls. The code isn't
+. smart enough to handle that.
 
 p         $proc     1
 pushregs* $name
@@ -111,7 +115,7 @@ i         $repeat   stacked(0),1,-1
           $end
 
 . Function to generate those bit settings that correspond
-. to option letters on processor calls. It's the callers job to know
+. to option letters on processor calls. It's the caller's job to know
 . that options 'A' to 'H' must be in a literal, and the others can
 . be immediate values.
 . Examples:
@@ -124,6 +128,7 @@ option*   $name
 
 . Proc to print an ASCII string:
 .         aprint    'any string'
+. A0 is destroyed
 
 p         $proc     1
 aprint*   $name
