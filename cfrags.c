@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <ertran.h>
 
-int sio_open(char *usename);
+#include <cfrags.h>
+
 
 int main(void)
 {

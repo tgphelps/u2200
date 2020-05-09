@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <ertran.h>
 
+#include <cfrags.h>
+
 /*
  * sector-io.c -- functions to read sectors from a disk file
  *
@@ -48,6 +50,7 @@ sio_open(char *filename)
     }
     fiow(&io_pkt);
     printf("I/O status: %02o\n", io_pkt.istat);
+    octal_dump(buffer, 28);
     return 0;
 }
 
