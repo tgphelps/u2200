@@ -9,6 +9,21 @@
 
 
 void
+octal_dump(int *words, int count)
+{
+    int i, j;
+    char buff1[8 + 1];
+    char buff2[8 + 1];
+    for (i = 0; i < count; i += WPL) {
+        int z = (i + WPL < count ? WPL : count - i);
+        for (j = 0; j < z; ++j)
+             printf("%012o ", words[i + j]);
+        printf("\n");
+    }
+}
+
+
+void
 octal_fdata_dump(int *words, int count)
 {
     int i, j;
