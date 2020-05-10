@@ -16,6 +16,7 @@ extern void octal_ascii_dump(int *words, int count);
 void log_open(char *fname, int level);
 void log_close(void);
 void log(int level, char *s);
+void log1d(int level, char *s, int n);
 void log_set_level(int level);
 
 

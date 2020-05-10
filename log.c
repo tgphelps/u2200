@@ -46,6 +46,18 @@ log(int level, char *s)
 }
 
 
+/* log1d: call log with one decimal int parameter */
+
+void
+log1d(int level, char *s, int n)
+{
+    char lmsg[100];
+
+    sprintf(lmsg, s, n);
+    log(level, lmsg);
+}
+
+
 /* log_set_level: adjust the log level */
 
 void
