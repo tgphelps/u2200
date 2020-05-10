@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <ertran.h>
 
-#include <cfrags.h>
+#include "cfrags.h"
 
 
 int main(void)
 {
+    log_open("LOG", 3);
+    log(3, "cfrags start");
     sio_open("$MFDB$");
+    log_close();
     return 0;
 }
 

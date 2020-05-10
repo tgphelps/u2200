@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sysutil.h>
 
+#include "cfrags.h"
+
 #define WPL 4    /* words per line */
 
 

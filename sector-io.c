@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <ertran.h>
 
-#include <cfrags.h>
+#include "cfrags.h"
 
 /*
  * sector-io.c -- functions to read sectors from a disk file
@@ -20,22 +20,28 @@
  *     array of the data. If the data isn't available, return NULL.
  */
 
+#define BUFSIZE 1792      /* size of I/O buffer */
 
 static _io_pkt_type io_pkt;
 
 static char the_file[12 + 1];
 static int num_buffers = 1;
 static int directions[1] = {0};
-static int word_counts[1] = {64 * 28};
+static int word_counts[1] = {BUFSIZE};
 static int function = _FR;
-static int buffer[64 * 28];
+static int buffer[BUFSIZE];
 static int buffers[1] =  {(int) buffer};
 static int num_words_used;
 static int sector_addr = 0;
 
+static int first_sector;  /* first sector in buffer */
+static int last_sector;   /* last sector in buffer */
+
+
 int
 sio_open(char *filename)
 {
+    int n;
     if (!file_assigned(filename)) {
         printf("File %s is not assigned.\n", filename);
         return 0;
@@ -49,7 +55,11 @@ sio_open(char *filename)
         feabt();
     }
     fiow(&io_pkt);
+    first_sector = 0;
+    n = io_pkt.subst / 28;  /* sectors actually read */
+    last_sector = first_sector + n - 1;
     printf("I/O status: %02o\n", io_pkt.istat);
+    printf("read sectors %d to %d\n", first_sector, last_sector);
     octal_fdata_dump(buffer, 28);
     octal_ascii_dump(buffer, 28);
     return 0;
