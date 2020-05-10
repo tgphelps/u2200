@@ -50,7 +50,8 @@ sio_open(char *filename)
     }
     fiow(&io_pkt);
     printf("I/O status: %02o\n", io_pkt.istat);
-    octal_dump(buffer, 28);
+    octal_fdata_dump(buffer, 28);
+    octal_ascii_dump(buffer, 28);
     return 0;
 }
 
