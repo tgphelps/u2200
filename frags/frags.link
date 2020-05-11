@@ -1,0 +1,3 @@
+include cfrags/c, sector-io/c, util/c, log/c
+resolve all references using local_defs, lcn
+process for extended zoom

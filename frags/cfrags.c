@@ -52,6 +52,7 @@ main(int argc, char *argv[])
     int i;
     file_pkt_type fpkt;
 
+    printf("FRAGS 1R1\n");
     parse_arguments(argc, argv);
     log_open("LOG", 3);
     log(3, "cfrags start");
@@ -131,7 +132,8 @@ count_dads(int *dadt)
     int count = 0;
     int *dad = dadt + OFFSET_TO_DAD1;
     for (i = 0; i < MAX_DADS; ++i) {
-        if ((H2(dad[0]) & IS_HOLE) == 0)
+        /* octal_dump(dad, 3); */
+        if ((H2(dad[2]) & IS_HOLE) == 0)
             ++count;
         if (H1(dad[2]) & IS_LAST_DAD)
             break;

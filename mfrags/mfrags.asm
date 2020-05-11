@@ -1,5 +1,5 @@
           $include  'maxr$'
-          $include  'tgpdef'
+          $include  'tgpdef/asm'
           $ascii
           $info     1 3               . quarter-word sensitive
 
@@ -16,7 +16,7 @@
 $(2)      $lit
 thestack  stackgen  50
 
-idpkt     i$dpkt    'IDBUFF' 'FRAGS 1R1'
+idpkt     i$dpkt    'IDBUFF' 'MFRAGS 1R1'
 mindads    $res      1
 
 $(1)

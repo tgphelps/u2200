@@ -1,0 +1,4 @@
+ibank,mr   i1
+    in mfrags($odd)
+dbank,mc   d1
+    in mfrags($even)
