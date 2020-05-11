@@ -1,7 +1,9 @@
 
 #include <assert.h>
-#include <stdio.h>
 #include <ertran.h>
+#include <stdio.h>
+#include <string.h>
+#include <sysutil.h>
 
 #include "cfrags.h"
 
@@ -10,6 +12,15 @@
 #define MFLABL 0  /* offset of label ('*MFDB*') */
 #define MFFLCT 1  /* offset of file count */
 #define MFFLAD 4  /* offset of first MFD sector addr */
+
+typedef struct {
+    char qual[12 + 1];
+    char file[12 + 1];
+    short fcycle;
+    short is_tape;
+    short num_frags;
+    short num_holes;
+} file_pkt_type;
 
 static int mfd_file_count;
 static int mfd_first_record;
@@ -23,6 +34,8 @@ static struct mfd_status {
 int main(void)
 {
     int i;
+    file_pkt_type fpkt;
+
     log_open("LOG", 3);
     log(3, "cfrags start");
     sio_open("$MFDB$");
@@ -31,8 +44,11 @@ int main(void)
     mfd.cur_buff = sio_read(mfd_first_record, 1);
     mfd.cur_sector = mfd_first_record;
 
-    for (i = 0; i <1; ++i) {
-        process_next_file();
+    for (i = 0; i < mfd_file_count; ++i) {
+        get_next_file_info(&fpkt);
+        printf("file: %d, qual: %s, name:%s\n", i, fpkt.qual,fpkt.file);
+        printf("fcyc = %d, is_tape = %d\n", fpkt.fcycle, fpkt.is_tape);
+        printf("dads = %d, holes = %d\n", fpkt.num_frags, fpkt.num_holes);
     }
     log_close();
     return 0;
@@ -45,9 +61,28 @@ int main(void)
  */
 
 void
-process_next_file(void) {
+get_next_file_info(file_pkt_type *p) {
     assert(H1(mfd.cur_buff[0]) != 0);
     printf("doing file\n");
+    fdasc(p->qual, mfd.cur_buff + 0, 12);
+    fdasc(p->file, mfd.cur_buff + 2, 12);
+    p->fcycle = H2(mfd.cur_buff[19]);
+    p->is_tape = S6(mfd.cur_buff[12]) & 01;
+/* TEMP */
+    p->num_frags = 5;
+    p->num_holes = 1;
+/* TEMP */
+    while (1) {
+        printf("fetch DAD table\n");
+        fetch_next_record();
+        if (H1(mfd.cur_buff[0]) != 0) {
+            printf("done\n");
+            /* mfd.cur_buff now contains the next file record */
+            break;
+        } else {
+            printf("process DAD table\n");
+        }
+    }
 }
 
 
@@ -67,4 +102,16 @@ open_mfd_extract(void)
     mfd_first_record = sec[MFFLAD];
     log1d(3, "file count = %d", mfd_file_count);
     log1d(3, "first record at sector %d", mfd_first_record);
+}
+
+
+/* fetch_next_record: Read the next sector from the MFD file, and
+ * update the 'mfd' struct.
+ */
+
+void
+fetch_next_record()
+{
+    mfd.cur_buff = sio_read(mfd.cur_sector + 1, 1);
+    ++mfd.cur_sector;;
 }

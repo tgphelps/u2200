@@ -22,3 +22,5 @@ void log_set_level(int level);
 
 #define H1(w) (w >> 18)
 #define H2(w) (w & 0777777)
+
+#define S6(w) (w & 077)
