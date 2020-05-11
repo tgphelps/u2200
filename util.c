@@ -79,3 +79,31 @@ make_printable(char *inbuf, char *outbuf, int len)
         outbuf[i] = c;
     }
 }
+
+
+/* startswith: return 1 if 'src' is a leading substring of 'dest', else 0. */
+
+int startswith(char *dest, char *src)
+{
+    int len = strlen(src);
+    if (strncmp(dest, src, len) == 0)
+        return 1;
+    else
+        return 0;
+}
+
+
+/* rtrim: remove trailing blanks from an LJSF string.
+ * WARNING: This mutates the string! */
+
+void
+rtrim(char *s)
+{
+    int i;
+    int len = strlen(s);
+    for (i = 0; i < strlen(s); ++i)
+        if (s[i] == ' '){
+            s[i] = '\0';
+            break;
+        }
+}

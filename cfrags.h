@@ -11,6 +11,8 @@ extern int *sio_read(int sector, int count);
 extern void octal_dump(int *words, int count);
 extern void octal_fdata_dump(int *words, int count);
 extern void octal_ascii_dump(int *words, int count);
+extern int startswith(char *dest, char *src);
+extern void rtrim(char *s);
 
 /* log.c */
 void log_open(char *fname, int level);
