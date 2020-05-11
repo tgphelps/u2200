@@ -19,7 +19,6 @@ typedef struct {
     short fcycle;
     short is_tape;
     short num_frags;
-    short num_holes;
 } file_pkt_type;
 
 static int mfd_file_count;
@@ -48,7 +47,7 @@ int main(void)
         get_next_file_info(&fpkt);
         printf("file: %d, qual: %s, name:%s\n", i, fpkt.qual,fpkt.file);
         printf("fcyc = %d, is_tape = %d\n", fpkt.fcycle, fpkt.is_tape);
-        printf("dads = %d, holes = %d\n", fpkt.num_frags, fpkt.num_holes);
+        printf("dads = %d\n", fpkt.num_frags);
     }
     log_close();
     return 0;
@@ -63,28 +62,55 @@ int main(void)
 void
 get_next_file_info(file_pkt_type *p) {
     assert(H1(mfd.cur_buff[0]) != 0);
-    printf("doing file\n");
     fdasc(p->qual, mfd.cur_buff + 0, 12);
+    p->qual[12] = '\0';
     fdasc(p->file, mfd.cur_buff + 2, 12);
+    p->file[12] = '\0';
     p->fcycle = H2(mfd.cur_buff[19]);
     p->is_tape = S6(mfd.cur_buff[12]) & 01;
-/* TEMP */
-    p->num_frags = 5;
-    p->num_holes = 1;
-/* TEMP */
+    p->num_frags = 0;
     while (1) {
-        printf("fetch DAD table\n");
         fetch_next_record();
         if (H1(mfd.cur_buff[0]) != 0) {
-            printf("done\n");
             /* mfd.cur_buff now contains the next file record */
             break;
         } else {
-            printf("process DAD table\n");
+            p->num_frags = count_dads(mfd.cur_buff);
         }
     }
 }
 
+
+/* count_dads: Return count of number of fragsments (not holes) in
+ * the DAD table passed in.
+ */
+
+#define MAX_DADS 8
+#define OFFSET_TO_DAD1 4
+#define DAD_SIZE 3
+#define IS_HOLE 0400000
+#define IS_LAST_DAD 04
+
+int
+count_dads(int *dadt)
+{
+    int i;
+    int count = 0;
+    int *dad = dadt + OFFSET_TO_DAD1;
+    for (i = 0; i < MAX_DADS; ++i) {
+        if ((H2(dad[0]) & IS_HOLE) == 0)
+            ++count; 
+        if (H1(dad[2]) & IS_LAST_DAD)
+            break;
+        dad += DAD_SIZE;
+    }
+    return count;
+}
+
+
+/* open_mfd_extract: Open the MFD file and verify the header record.
+ * Get the file count and address of first file record.
+ */
 
 void
 open_mfd_extract(void)

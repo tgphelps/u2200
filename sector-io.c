@@ -76,7 +76,7 @@ sio_read(int sector, int num_sectors)
     } else
         log(3, "sio: cache hit");
         ptr = 28 * (sector - first_sector);
-        printf("offset = %d\n", ptr);
+        /* printf("offset = %d\n", ptr); */
         /* octal_fdata_dump(buffer + ptr, 28); */
         return buffer + ptr;
         
