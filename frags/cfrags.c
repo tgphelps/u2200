@@ -36,12 +36,9 @@ typedef struct {
 typedef struct {
     int mfd_file_count;
     int mfd_first_record;
-} mfd_info_type;
-
-static struct mfd_status {
     int cur_sector;
     int *cur_buff;
-} mfd;
+} mfd_info_type;
 
 #define MAX_COUNT 100
 
@@ -68,11 +65,11 @@ main(int argc, char *argv[])
     sio_open("$MFDB$");
     open_mfd_extract(&mfd_info);
 
-    mfd.cur_buff = sio_read(mfd_info.mfd_first_record, 1);
-    mfd.cur_sector = mfd_info.mfd_first_record;
+    mfd_info.cur_buff = sio_read(mfd_info.mfd_first_record, 1);
+    mfd_info.cur_sector = mfd_info.mfd_first_record;
 
     for (i = 0; i < mfd_info.mfd_file_count; ++i) {
-        get_next_file_info(&fpkt);
+        get_next_file_info(&fpkt, &mfd_info);
         /***
         printf("file: %d, qual: %s, name:%s\n", i, fpkt.qual,fpkt.file);
         printf("fcyc = %d, is_tape = %d\n", fpkt.fcycle, fpkt.is_tape);
@@ -104,24 +101,24 @@ main(int argc, char *argv[])
  */
 
 void
-get_next_file_info(file_pkt_type *p) {
-    /* assert(H1(mfd.cur_buff[0]) != 0); */
-    fdasc(p->qual, mfd.cur_buff + 0, 12);
+get_next_file_info(file_pkt_type *p, mfd_info_type *m) {
+    assert(H1(m->cur_buff[0]) != 0);
+    fdasc(p->qual, m->cur_buff + 0, 12);
     p->qual[12] = '\0';
     rtrim(p->qual);
-    fdasc(p->file, mfd.cur_buff + 2, 12);
+    fdasc(p->file, m->cur_buff + 2, 12);
     p->file[12] = '\0';
     rtrim(p->file);
-    p->fcycle = H2(mfd.cur_buff[19]);
-    p->is_tape = S6(mfd.cur_buff[12]) & 01;
+    p->fcycle = H2(m->cur_buff[19]);
+    p->is_tape = S6(m->cur_buff[12]) & 01;
     p->num_frags = 0;
     while (1) {
-        fetch_next_record();
-        if (H1(mfd.cur_buff[0]) != 0) {
-            /* mfd.cur_buff now contains the next file record */
+        fetch_next_record(m);
+        if (H1(m->cur_buff[0]) != 0) {
+            /* cur_buff now contains the next file record */
             break;
         } else {
-            p->num_frags = count_dads(mfd.cur_buff);
+            p->num_frags = count_dads(m->cur_buff);
         }
     }
 }
@@ -186,10 +183,10 @@ open_mfd_extract(mfd_info_type *m)
  */
 
 void
-fetch_next_record()
+fetch_next_record(mfd_info_type *m)
 {
-    mfd.cur_buff = sio_read(mfd.cur_sector + 1, 1);
-    ++mfd.cur_sector;;
+    m->cur_buff = sio_read(m->cur_sector + 1, 1);
+    ++(m->cur_sector);;
 }
 
 
