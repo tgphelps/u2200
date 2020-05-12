@@ -14,13 +14,16 @@
 #define MFFLCT 1  /* offset of file count */
 #define MFFLAD 4  /* offset of first MFD sector addr */
 
-static enum {
+typedef enum {
     opt_list,
     opt_min,
     opt_dist
-} option;
+} option_type;
 
-static int min_dads;
+typedef struct {
+    option_type option;
+    int min_frags;
+} parser_type;
 
 typedef struct {
     char qual[12 + 1];
@@ -30,8 +33,10 @@ typedef struct {
     short num_frags;
 } file_pkt_type;
 
-static int mfd_file_count;
-static int mfd_first_record;
+typedef struct {
+    int mfd_file_count;
+    int mfd_first_record;
+} mfd_info_type;
 
 static struct mfd_status {
     int cur_sector;
@@ -51,34 +56,37 @@ main(int argc, char *argv[])
 {
     int i;
     file_pkt_type fpkt;
+    parser_type parse_info;
+    mfd_info_type mfd_info;
 
     printf("FRAGS 1R1\n");
-    parse_arguments(argc, argv);
+    parse_arguments(argc, argv, &parse_info);
 #if LOG
     log_open("LOG");
     log("frags start");
 #endif
     sio_open("$MFDB$");
-    open_mfd_extract();
+    open_mfd_extract(&mfd_info);
 
-    mfd.cur_buff = sio_read(mfd_first_record, 1);
-    mfd.cur_sector = mfd_first_record;
+    mfd.cur_buff = sio_read(mfd_info.mfd_first_record, 1);
+    mfd.cur_sector = mfd_info.mfd_first_record;
 
-    for (i = 0; i < mfd_file_count; ++i) {
+    for (i = 0; i < mfd_info.mfd_file_count; ++i) {
         get_next_file_info(&fpkt);
         /***
         printf("file: %d, qual: %s, name:%s\n", i, fpkt.qual,fpkt.file);
         printf("fcyc = %d, is_tape = %d\n", fpkt.fcycle, fpkt.is_tape);
         printf("dads = %d\n", fpkt.num_frags);
         ***/
-        if (option == opt_list
-        || (option == opt_min && fpkt.num_frags >= min_dads))
+        if (parse_info.option == opt_list
+        || (parse_info.option == opt_min
+            && fpkt.num_frags >= parse_info.min_frags))
             print_file_info(fpkt);
         else {
             save_dist_info(fpkt);
         }
     }
-    if (option == opt_dist)
+    if (parse_info.option == opt_dist)
         print_dist_info();
 
 #if LOG
@@ -153,7 +161,7 @@ count_dads(int *dadt)
  */
 
 void
-open_mfd_extract(void)
+open_mfd_extract(mfd_info_type *m)
 {
     int *sec;
 
@@ -163,12 +171,12 @@ open_mfd_extract(void)
         printf("ERROR: Invalid MFD file header\n");
         feabt();
     }
-    mfd_file_count = sec[MFFLCT];
-    mfd_first_record = sec[MFFLAD];
+    m->mfd_file_count = sec[MFFLCT];
+    m->mfd_first_record = sec[MFFLAD];
 #if LOG
     log("MFD file header okay");
-    log1d("file count = %d", mfd_file_count);
-    log1d("first record at sector %d", mfd_first_record);
+    log1d("file count = %d", m->mfd_file_count);
+    log1d("first record at sector %d", m->mfd_first_record);
 #endif
 }
 
@@ -188,7 +196,7 @@ fetch_next_record()
 /* parse_arguments: parse program arguments. Return only if they're okay. */
 
 void
-parse_arguments(int argc, char *argv[])
+parse_arguments(int argc, char *argv[], parser_type *parse_info)
 {
     char *spec;
     char *token;
@@ -199,18 +207,18 @@ parse_arguments(int argc, char *argv[])
 
     spec = argv[1];
     if (startswith(spec, "list")) {
-        option = opt_list;
+        parse_info->option = opt_list;
     } else if (startswith(spec, "dist")) {
-        option = opt_dist;
+        parse_info->option = opt_dist;
     } else if (startswith(spec, "min")) {
-        option = opt_min;
+        parse_info->option = opt_min;
         token = strtok(spec, "/");
         token = strtok(NULL, "/");
         if (token == NULL)
             usage();
         n = atoi(token);
         if (n > 0)
-            min_dads = n;
+            parse_info->min_frags = n;
         else
             usage();
     } else
