@@ -41,10 +41,12 @@ typedef struct {
 } mfd_info_type;
 
 #define MAX_COUNT 100
+typedef struct {
+    int frag_counts[MAX_COUNT];
+    int really_big_count;
+    int max_count_found;
+} counts_type;
 
-static int frag_counts[MAX_COUNT];  /* initially zero */
-static int really_big_count = 0;
-static int max_count_found = 0;
 
 /************************************/
 
@@ -55,8 +57,15 @@ main(int argc, char *argv[])
     file_pkt_type fpkt;
     parser_type parse_info;
     mfd_info_type mfd_info;
+    counts_type counts;
 
     printf("FRAGS 1R1\n");
+
+    counts.really_big_count = 0;
+    counts.max_count_found = 0;
+    for (i = 0; i < MAX_COUNT; ++i)
+        counts.frag_counts[i] = 0;
+
     parse_arguments(argc, argv, &parse_info);
 #if LOG
     log_open("LOG");
@@ -80,11 +89,11 @@ main(int argc, char *argv[])
             && fpkt.num_frags >= parse_info.min_frags))
             print_file_info(fpkt);
         else {
-            save_dist_info(fpkt);
+            save_dist_info(fpkt, &counts);
         }
     }
     if (parse_info.option == opt_dist)
-        print_dist_info();
+        print_dist_info(&counts);
 
 #if LOG
     log_close();
@@ -257,28 +266,28 @@ usage(void)
 /* save_dist_info: Update frag counts */
 
 void
-save_dist_info(file_pkt_type p)
+save_dist_info(file_pkt_type p, counts_type *c)
 {
     int num;
     num = p.num_frags;
     if (num < MAX_COUNT) {
-        ++frag_counts[num];
-        if (num > max_count_found)
-            max_count_found = num;
+        ++(c->frag_counts[num]);
+        if (num > c->max_count_found)
+            c->max_count_found = num;
     } else
-        ++really_big_count;
+        ++(c->really_big_count);
 }
 
 
 /* print_dist_info: Print file counts by number of fragments */
 
 void
-print_dist_info(void)
+print_dist_info(counts_type *c)
 {
     int i;
     printf("Frags Count\n");
     printf("----- -----\n");
-    for (i = 0; i <= max_count_found; ++i)
-        printf("%5d %5d\n", i, frag_counts[i]);
-    printf("%MORE  %5d\n", really_big_count);
+    for (i = 0; i <= c->max_count_found; ++i)
+        printf("%5d %5d\n", i, c->frag_counts[i]);
+    printf("%MORE  %5d\n", c->really_big_count);
 }

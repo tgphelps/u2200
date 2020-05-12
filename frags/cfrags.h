@@ -3,7 +3,7 @@
 
 #pragma function_prototypes_required
 
-#define LOG 1
+#define LOG 0
 
 /* sector-io.c */
 extern int sio_open(char *use_name);
