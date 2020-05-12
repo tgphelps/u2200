@@ -32,7 +32,9 @@ static int buffer[BUFSIZE];
 static int first_sector = -2;  /* force first sio_read to do physical read */
 static int last_sector  = -1;
 
-char lmsg[100];
+#if LOG
+static char lmsg[100];
+#endif
 
 int
 sio_open(char *filename)

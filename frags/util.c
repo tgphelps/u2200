@@ -12,8 +12,7 @@ void
 octal_dump(int *words, int count)
 {
     int i, j;
-    char buff1[8 + 1];
-    char buff2[8 + 1];
+
     for (i = 0; i < count; i += WPL) {
         int z = (i + WPL < count ? WPL : count - i);
         for (j = 0; j < z; ++j)
@@ -29,6 +28,7 @@ octal_fdata_dump(int *words, int count)
     int i, j;
     char buff1[8 + 1];
     char buff2[8 + 1];
+
     for (i = 0; i < count; i += WPL) {
         int z = (i + WPL < count ? WPL : count - i);
         for (j = 0; j < z; ++j)
@@ -48,9 +48,9 @@ octal_fdata_dump(int *words, int count)
 void
 octal_ascii_dump(int *words, int count)
 {
-#define WPL 4    /* words per line */
     int i, j;
     char buff[4 + 1];
+
     for (i = 0; i < count; i += WPL) {
         int z = (i + WPL < count ? WPL : count - i);
         for (j = 0; j < z; ++j)
@@ -101,7 +101,7 @@ rtrim(char *s)
 {
     int i;
     int len = strlen(s);
-    for (i = 0; i < strlen(s); ++i)
+    for (i = 0; i < len; ++i)
         if (s[i] == ' '){
             s[i] = '\0';
             break;

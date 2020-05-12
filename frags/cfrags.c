@@ -14,13 +14,13 @@
 #define MFFLCT 1  /* offset of file count */
 #define MFFLAD 4  /* offset of first MFD sector addr */
 
-enum {
+static enum {
     opt_list,
     opt_min,
     opt_dist
 } option;
 
-int min_dads;
+static int min_dads;
 
 typedef struct {
     char qual[12 + 1];
@@ -40,9 +40,9 @@ static struct mfd_status {
 
 #define MAX_COUNT 100
 
-int frag_counts[MAX_COUNT];  /* initially zero */
-int really_big_count = 0;
-int max_count_found = 0;
+static int frag_counts[MAX_COUNT];  /* initially zero */
+static int really_big_count = 0;
+static int max_count_found = 0;
 
 /************************************/
 
