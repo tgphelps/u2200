@@ -3,6 +3,8 @@
 
 #pragma function_prototypes_required
 
+#define LOG 1
+
 /* sector-io.c */
 extern int sio_open(char *use_name);
 extern int *sio_read(int sector, int count);
@@ -14,12 +16,13 @@ extern void octal_ascii_dump(int *words, int count);
 extern int startswith(char *dest, char *src);
 extern void rtrim(char *s);
 
+#if LOG
 /* log.c */
-void log_open(char *fname, int level);
+void log_open(char *fname);
 void log_close(void);
-void log(int level, char *s);
-void log1d(int level, char *s, int n);
-void log_set_level(int level);
+void log(char *s);
+void log1d(char *s, int n);
+#endif
 
 
 #define H1(w) (w >> 18)

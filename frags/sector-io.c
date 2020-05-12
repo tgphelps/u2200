@@ -46,11 +46,15 @@ sio_open(char *filename)
     int sector_addr = 0;
 
     if (!file_assigned(filename)) {
-        log(3, "File is NOT assigned");
+#if LOG
+        log("File is NOT assigned");
+#endif
         printf("ERROR: File %s is not assigned.\n", filename);
         return 0;
     }
-    log(3, "sio: file is assigned");
+#if LOG
+    log("sio: file is assigned");
+#endif
     /* build I/O packet and do first I/O */
     ucsmakeiopk(&io_pkt, filename, &function, &sector_addr, &num_buffers,
                 directions, word_counts, buffers, &num_words_used);
@@ -67,19 +71,25 @@ sio_read(int sector, int num_sectors)
     int sector_to_read;
     int ptr;
 
-    log1d(3, "sio: read(%d)", sector);
+#if LOG
+    log1d("sio: read(%d)", sector);
+#endif
     assert(num_sectors == 1);
     if (sector < first_sector || sector > last_sector) {
-        log(3, "sio: cache miss");
+#if LOG
+        log("sio: cache miss");
+#endif
         sector_to_read = (sector / SPB) * SPB;
         physical_read(sector_to_read);
-    } else
-        log(3, "sio: cache hit");
-        ptr = 28 * (sector - first_sector);
-        /* printf("offset = %d\n", ptr); */
-        /* octal_fdata_dump(buffer + ptr, 28); */
-        return buffer + ptr;
-        
+    } else {
+#if LOG
+        log("sio: cache hit");
+#endif
+    }
+    ptr = 28 * (sector - first_sector);
+    /* printf("offset = %d\n", ptr); */
+    /* octal_fdata_dump(buffer + ptr, 28); */
+    return buffer + ptr;
 }
 
 
@@ -92,21 +102,27 @@ physical_read(int sector_wanted)
     int n;
 
     io_pkt.trkad = sector_wanted;
-    log1d(3, "sio: phys read sector %d", sector_wanted);
+#if LOG
+    log1d("sio: phys read sector %d", sector_wanted);
+#endif
     fiow(&io_pkt);
 
     first_sector = sector_wanted;
     n = io_pkt.subst / 28;  /* sectors actually read */
     if (n == 0) {
-        log(3, "sio: ERROR: I/O read 0 sectors");
+#if LOG
+        log("sio: ERROR: I/O read 0 sectors");
+#endif
         printf("sio: ERROR: I/O read 0 sectors\n");
         feabt();
     }
     last_sector = first_sector + n - 1;
 
+#if LOG
     sprintf(lmsg, "sio: iostat: %02o read: %d",
                   io_pkt.istat, io_pkt.subst);
-    log(3, lmsg);
+    log(lmsg);
+#endif
     /* printf("read sectors %d to %d\n", first_sector, last_sector); */
     if (io_pkt.istat > 0)
         printf("WARNING: I/O status: %02o\n", io_pkt.istat);

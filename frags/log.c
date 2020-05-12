@@ -1,23 +1,24 @@
 
 #include <stdio.h>
+#include <ertran.h>
+#include "cfrags.h"
 
+#if LOG
 
 static FILE *log_file;
-static int log_level = 3;  /* 0,1,2,3 => off,low,medium,high */
 
 
-/* log_open: open log file, set initial level */
+/* log_open: open log file */
 
 void
-log_open(char *fname, int level)
+log_open(char *fname)
 {
     log_file = fopen(fname, "wt");
     if (!log_file) {
         printf("failed to open log file\n");
         feabt();
     }
-    log(1, "log opened");
-    log_level = level;
+    log("log opened");
 }
 
 
@@ -27,52 +28,46 @@ void
 log_close(void)
 {
     if (log_file)
-        log(1, "log closed");
+        log("log closed");
         fclose(log_file);
         log_file = NULL;
 }
 
 
-/* log: write msg to file, then '\n', if level is suitable */
+/* log: write msg to file, then '\n' */
 
 void
-log(int level, char *s)
+log(char *s)
 {
-    if (log_file)
-        if (level <= log_level) {
-            fputs(s, log_file);
-            fputc('\n', log_file);
-        }
+    if (log_file) {
+        fputs(s, log_file);
+        fputc('\n', log_file);
+    }
 }
 
 
 /* log1d: call log with one decimal int parameter */
 
 void
-log1d(int level, char *s, int n)
+log1d(char *s, int n)
 {
     char lmsg[100];
 
     sprintf(lmsg, s, n);
-    log(level, lmsg);
+    log(lmsg);
 }
 
-
-/* log_set_level: adjust the log level */
-
-void
-log_set_level(int level)
-{
-    log_level = level;
-}
 
 
 /*****
 int
 main(void)
 {
-    log_open("LOG", 3);
-    log(1, "test message 2");
+    log_open("LOG");
+    log("test message 2");
     log_close();
 }
 *****/
+#else
+char ident[] = "No logging code here.";
+#endif

@@ -54,8 +54,10 @@ main(int argc, char *argv[])
 
     printf("FRAGS 1R1\n");
     parse_arguments(argc, argv);
-    log_open("LOG", 3);
-    log(3, "cfrags start");
+#if LOG
+    log_open("LOG");
+    log("frags start");
+#endif
     sio_open("$MFDB$");
     open_mfd_extract();
 
@@ -79,7 +81,9 @@ main(int argc, char *argv[])
     if (option == opt_dist)
         print_dist_info();
 
+#if LOG
     log_close();
+#endif
     return 0;
 }
 
@@ -93,7 +97,7 @@ main(int argc, char *argv[])
 
 void
 get_next_file_info(file_pkt_type *p) {
-    assert(H1(mfd.cur_buff[0]) != 0);
+    /* assert(H1(mfd.cur_buff[0]) != 0); */
     fdasc(p->qual, mfd.cur_buff + 0, 12);
     p->qual[12] = '\0';
     rtrim(p->qual);
@@ -131,6 +135,7 @@ count_dads(int *dadt)
     int i;
     int count = 0;
     int *dad = dadt + OFFSET_TO_DAD1;
+
     for (i = 0; i < MAX_DADS; ++i) {
         /* octal_dump(dad, 3); */
         if ((H2(dad[2]) & IS_HOLE) == 0)
@@ -158,11 +163,13 @@ open_mfd_extract(void)
         printf("ERROR: Invalid MFD file header\n");
         feabt();
     }
-    log(3, "MFD file header okay");
     mfd_file_count = sec[MFFLCT];
     mfd_first_record = sec[MFFLAD];
-    log1d(3, "file count = %d", mfd_file_count);
-    log1d(3, "first record at sector %d", mfd_first_record);
+#if LOG
+    log("MFD file header okay");
+    log1d("file count = %d", mfd_file_count);
+    log1d("first record at sector %d", mfd_first_record);
+#endif
 }
 
 
