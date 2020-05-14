@@ -15,6 +15,7 @@ extern void octal_fdata_dump(int *words, int count);
 extern void octal_ascii_dump(int *words, int count);
 extern int startswith(char *dest, char *src);
 extern void rtrim(char *s);
+extern void str_tolower(char *s);
 
 #if LOG
 /* log.c */

@@ -224,7 +224,7 @@ parse_arguments(int argc, char *argv[], parser_type *parse_info)
         usage();
 
     spec = argv[1];
-    /* XXX: should make these case-insensitive */
+    str_tolower(spec);
     if (startswith(spec, "list")) {
         parse_info->option = opt_list;
     } else if (startswith(spec, "dist")) {

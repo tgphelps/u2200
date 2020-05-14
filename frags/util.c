@@ -1,4 +1,5 @@
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <sysutil.h>
@@ -112,4 +113,17 @@ rtrim(char *s)
             s[i] = '\0';
             break;
         }
+}
+
+
+/* str_tolower: Destructively change all upper case characters in
+ * a string to lower case.
+ */
+
+void str_tolower(char *s)
+{
+    int i;
+    int len = strlen(s);
+    for (i = 0; i < len; ++i)
+        s[i] = tolower(s[i]);
 }
