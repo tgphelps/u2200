@@ -8,6 +8,8 @@
 #define WPL 4    /* words per line */
 
 
+/* octal_dump: print a buffer in octal, 'WPL' words per line*/
+
 void
 octal_dump(int *words, int count)
 {
@@ -21,6 +23,8 @@ octal_dump(int *words, int count)
     }
 }
 
+
+/* octal_fdata_dump: octal_dump + Fieldata */
 
 void
 octal_fdata_dump(int *words, int count)
@@ -44,6 +48,8 @@ octal_fdata_dump(int *words, int count)
     }
 }
 
+
+/* octal_fdata_dump: octal_dump + ASCII */
 
 void
 octal_ascii_dump(int *words, int count)

@@ -13,9 +13,11 @@
  *
  * Exported functions:
  * int sio_open(char *filename)
- *     If the file is not assigned, print a message and return 0.
+ *     If the file is not assigned, return 0.
  *     If it is assigned, try to read the first track. We don't
- *     catch a fatal I/O error. If we read data, return 1, else 0.
+ *     catch a fatal I/O error, so a crash may result.
+ *     If we read data, return 1, else 0.
+ *
  * int *sio_read(int sector, int num_sectors)
  *     The sectors requested must not span a track boundary (for now).
  *     Return pointer to first_sector, or NULL if we can't do it.
@@ -36,6 +38,7 @@ static int last_sector  = -1;
 static char lmsg[100];
 #endif
 
+
 int
 sio_open(char *filename)
 {
@@ -51,19 +54,19 @@ sio_open(char *filename)
 #if LOG
         log("File is NOT assigned");
 #endif
-        printf("ERROR: File %s is not assigned.\n", filename);
         return 0;
     }
 #if LOG
     log("sio: file is assigned");
 #endif
+
     /* build I/O packet and do first I/O */
     ucsmakeiopk(&io_pkt, filename, &function, &sector_addr, &num_buffers,
                 directions, word_counts, buffers, &num_words_used);
-    assert(num_words_used > 0);
-    sio_read(0, 1);
+    assert(num_words_used > 0);  /* should never happen */
+    sio_read(0, 1);  /* force a physical read */
     /* octal_fdata_dump(buffer, 28); */
-    return 0;
+    return 1;  /* return 'ok' */
 }
 
 
@@ -88,7 +91,7 @@ sio_read(int sector, int num_sectors)
         log("sio: cache hit");
 #endif
     }
-    ptr = 28 * (sector - first_sector);
+    ptr = 28 * (sector - first_sector);  /* offset of requested sector */
     /* printf("offset = %d\n", ptr); */
     /* octal_fdata_dump(buffer + ptr, 28); */
     return buffer + ptr;
@@ -98,6 +101,7 @@ sio_read(int sector, int num_sectors)
 /* Function to read a buffer of data from disk.
    Updates first_sector and last_sector to show what's in the buffer.
 */
+
 void
 physical_read(int sector_wanted)
 {

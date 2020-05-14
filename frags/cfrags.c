@@ -8,6 +8,7 @@
 
 #include "cfrags.h"
 
+
 /* words in MFD extract header */
 
 #define MFLABL 0  /* offset of label ('*MFDB*') */
@@ -54,6 +55,7 @@ int
 main(int argc, char *argv[])
 {
     int i;
+    int stat;
     file_pkt_type fpkt;
     parser_type parse_info;
     mfd_info_type mfd_info;
@@ -61,6 +63,7 @@ main(int argc, char *argv[])
 
     printf("FRAGS 1R1\n");
 
+    /* clear all the counts */
     counts.really_big_count = 0;
     counts.max_count_found = 0;
     for (i = 0; i < MAX_COUNT; ++i)
@@ -71,7 +74,11 @@ main(int argc, char *argv[])
     log_open("LOG");
     log("frags start");
 #endif
-    sio_open("$MFDB$");
+    stat = sio_open("$MFDB$");
+    if (stat == 0) {
+        printf("ERROR: file $MFDB$ is not assigned\n");
+        fexit();
+    }
     open_mfd_extract(&mfd_info);
 
     mfd_info.cur_buff = sio_read(mfd_info.mfd_first_record, 1);
@@ -111,19 +118,23 @@ main(int argc, char *argv[])
 
 void
 get_next_file_info(file_pkt_type *p, mfd_info_type *m) {
-    assert(H1(m->cur_buff[0]) != 0);
+    assert(H1(m->cur_buff[0]) != 0);  /* must be a file record */
+
     fdasc(p->qual, m->cur_buff + 0, 12);
     p->qual[12] = '\0';
     rtrim(p->qual);
+
     fdasc(p->file, m->cur_buff + 2, 12);
     p->file[12] = '\0';
     rtrim(p->file);
+
     p->fcycle = H2(m->cur_buff[19]);
     p->is_tape = S6(m->cur_buff[12]) & 01;
     p->num_frags = 0;
+
     while (1) {
         fetch_next_record(m);
-        if (H1(m->cur_buff[0]) != 0) {
+        if (H1(m->cur_buff[0]) != 0) {  /* if it's not a DAD table */
             /* cur_buff now contains the next file record */
             break;
         } else {
@@ -173,6 +184,7 @@ open_mfd_extract(mfd_info_type *m)
 
     sio_open("$MFDB$");
     sec = sio_read(0, 1);
+    /* Word 1 should be '*MFDB*', and file count non-zero */
     if ((sec[MFLABL] != 0502213110750) || (sec[MFFLCT] == 0)) {
         printf("ERROR: Invalid MFD file header\n");
         feabt();
@@ -212,6 +224,7 @@ parse_arguments(int argc, char *argv[], parser_type *parse_info)
         usage();
 
     spec = argv[1];
+    /* XXX: should make these case-insensitive */
     if (startswith(spec, "list")) {
         parse_info->option = opt_list;
     } else if (startswith(spec, "dist")) {
@@ -219,7 +232,7 @@ parse_arguments(int argc, char *argv[], parser_type *parse_info)
     } else if (startswith(spec, "min")) {
         parse_info->option = opt_min;
         token = strtok(spec, "/");
-        token = strtok(NULL, "/");
+        token = strtok(NULL, "/");  /* token is stuff after the slash */
         if (token == NULL)
             usage();
         n = atoi(token);
