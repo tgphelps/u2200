@@ -7,8 +7,8 @@
 . Just print qual*filenames and DAD counts.
 . No selection, no sorting.
 
-. I assume the MFD extact file and sort/merge file XA
-. are assigned, because MFDEDT should have just run.
+. I assume the MFD extact file is assigned,
+. because MFDEDT should have just run.
 . (We'll polish this later.)
 
 
@@ -70,10 +70,10 @@ getparam
           call      fdbin             . a0 = parameter
           endsub
 badinfor
-          aprint    'FRAGS must be called as a processor.'
+          aprint    'MFRAGS must be called as a processor.'
           er        exit$
 usage
-          aprint    'usage: @FRAGS <mindads>'
+          aprint    'usage: @MFRAGS <mindads>'
           er         exit$
 /
 $(2)

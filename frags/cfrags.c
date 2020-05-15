@@ -138,7 +138,7 @@ get_next_file_info(file_pkt_type *p, mfd_info_type *m) {
             /* cur_buff now contains the next file record */
             break;
         } else {
-            p->num_frags = count_dads(m->cur_buff);
+            p->num_frags += count_dads(m->cur_buff);
         }
     }
 }
