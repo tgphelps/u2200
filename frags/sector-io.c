@@ -27,6 +27,9 @@
 #define BUFSIZE 1792            /* word size of I/O buffer */
 #define SPB     (BUFSIZE / 28)  /* sectors per buffer */
 
+
+static int sio_opened = 0;
+
 static _io_pkt_type io_pkt;
 
 static int buffer[BUFSIZE];
@@ -50,6 +53,9 @@ sio_open(char *filename)
     int num_words_used;
     int sector_addr = 0;
 
+    assert(!sio_opened);  /* don't open me twice */
+    sio_opened = 1;
+
     if (!file_assigned(filename)) {
 #if LOG
         log("File is NOT assigned");
@@ -70,12 +76,21 @@ sio_open(char *filename)
 }
 
 
+void
+sio_close(void)
+{
+    assert(sio_opened);
+    sio_opened = 0;
+}
+
+
 int *
 sio_read(int sector, int num_sectors)
 {
     int sector_to_read;
     int ptr;
 
+    assert(sio_opened);
 #if LOG
     log1d("sio: read(%d)", sector);
 #endif

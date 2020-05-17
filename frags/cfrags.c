@@ -102,6 +102,7 @@ main(int argc, char *argv[])
     if (parse_info.option == opt_dist)
         print_dist_info(&counts);
 
+    sio_close();
 #if LOG
     log_close();
 #endif
@@ -182,7 +183,7 @@ open_mfd_extract(mfd_info_type *m)
 {
     int *sec;
 
-    sio_open("$MFDB$");
+    /* sio_open("$MFDB$"); */
     sec = sio_read(0, 1);
     /* Word 1 should be '*MFDB*', and file count non-zero */
     if ((sec[MFLABL] != 0502213110750) || (sec[MFFLCT] == 0)) {
